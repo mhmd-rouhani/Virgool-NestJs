@@ -27,3 +27,12 @@ export class AuthDto {
     @IsEnum(AuthMethod, {message: 'Method must be one of: Username, Email, Phone'})
     method: AuthMethod;
 }
+
+export class CheckOtpDto {
+    @ApiProperty({
+        example: ""
+    })
+    @IsString()
+    @Length(5, 5, {message: "کد وارد شده اشتباه می باشد"})
+    code: string
+}

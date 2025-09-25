@@ -2,4 +2,10 @@ export enum EntityNames {
     User = "user",
     Profile = "profile",
     Otp = "otp",
+    Category = "category",
+    Blog = "blog",
+    BlogCategory = "blog_category",
+    Like = "like",
+    Comment = "comment",
+    Bookmark = "bookmark",
 }

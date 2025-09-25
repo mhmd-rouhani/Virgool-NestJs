@@ -1,8 +1,10 @@
 import {
     BadRequestException,
     ConflictException,
-    ForbiddenException,
+    Inject,
     Injectable,
+    NotFoundException,
+    Scope,
     UnauthorizedException
 } from '@nestjs/common';
 import {AuthDto} from "./dto/auth.dto";
@@ -17,17 +19,18 @@ import {AuthMessage, BadRequestMessage, PublicMessage} from "../../common/enums/
 import {OtpEntity} from "../user/entities/otp.entity";
 import {randomInt} from "crypto"
 import {TokenService} from "./tokens.service";
-import {Response} from "express";
+import type {Request, Response} from "express";
 import {CookieKeys} from "../../common/enums/cookie.enum";
 import {AuthResponse} from "./types/response";
+import {REQUEST} from "@nestjs/core";
 
-@Injectable()
+@Injectable({scope: Scope.REQUEST})
 export class AuthService {
 
     constructor(
         @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
-        @InjectRepository(ProfileEntity) private profileRepository: Repository<ProfileEntity>,
         @InjectRepository(OtpEntity) private otpRepository: Repository<OtpEntity>,
+        @Inject(REQUEST) private request: Request,
         private tokenService: TokenService,
     ) {
     }
@@ -52,11 +55,11 @@ export class AuthService {
 
     async register(method: AuthMethod, username: string) {
         // فقط یوزرنیم مجازه
-        if (!isMobilePhone(username, 'fa-IR') && !isEmail(username)) {
+        if (method === AuthMethod.Username) {
             throw new BadRequestException(AuthMessage.NotUsername);
         }
 
-        await this.existUsername(username)
+        // await this.existUsername(username)
 
         // اعتبارسنجی یوزرنیم براساس متد
         const safeUsername = this.usernameValidator(method, username);
@@ -67,13 +70,15 @@ export class AuthService {
 
         // ساخت و ذخیره‌ی کاربر
         const user = await this.userRepository.save(
-            this.userRepository.create({[method]: safeUsername})
+            this.userRepository.create({
+                [method]: safeUsername,
+            })
         );
 
         await this.userRepository.update({id: user.id}, {username: `m_${user.id}`})
 
         // تولید/ذخیره‌ی OTP
-        const otp = await this.saveOtp(user.id);
+        const otp = await this.saveOtp(user.id, method);
         const token = this.tokenService.createOtpToken({userId: user.id})
 
         return {
@@ -90,7 +95,7 @@ export class AuthService {
         //اگر وجود نداشت بهش خطا میدیم
         if (!user) throw new UnauthorizedException(AuthMessage.NotFoundAccount);
 
-        const otp = await this.saveOtp(user.id)
+        const otp = await this.saveOtp(user.id, method)
         const token = this.tokenService.createOtpToken({userId: user.id})
 
         return {
@@ -105,7 +110,9 @@ export class AuthService {
                 if (isEmail(username)) return username
                 throw new BadRequestException(BadRequestMessage.EmailFormat);
             case AuthMethod.Phone:
-                if (isMobilePhone(username, "fa-IR")) return username
+                if (isMobilePhone(username, "fa-IR")) {
+                    return username
+                }
                 throw new BadRequestException(BadRequestMessage.MobileNumber);
             case AuthMethod.Username:
                 return username
@@ -119,14 +126,14 @@ export class AuthService {
         return await this.userRepository.findOneBy({[method]: username})
     }
 
-    async saveOtp(userId: number) {
+    async saveOtp(userId: number, method: AuthMethod) {
         const code = randomInt(10000, 99999).toString();
         const expires_in = new Date(Date.now() + 2 * 60 * 1000); // 2 دقیقه اعتبار
 
         let otp = await this.otpRepository.findOneBy({user_id: userId});
 
         if (!otp) {
-            otp = this.otpRepository.create({user_id: userId, code, expires_in});
+            otp = this.otpRepository.create({user_id: userId, code, expires_in, method});
             otp = await this.otpRepository.save(otp);
 
             await this.userRepository.update({id: userId}, {otp_id: otp.id});
@@ -136,24 +143,65 @@ export class AuthService {
         // اگر OTP موجوده، فقط آپدیت می‌کنیم
         otp.code = code;
         otp.expires_in = expires_in;
+        otp.method = method;
         return this.otpRepository.save(otp);
     }
 
-    async existUsername(username: string) {
-        const exist = await this.userRepository.existsBy({username});
-        if (exist) throw new ConflictException(AuthMessage.ExistUsername);
-    }
+    async checkOtp(code: string) {
+        const token = this.request.cookies?.[CookieKeys.OTP]
+        if (!token) {
+            throw new UnauthorizedException(AuthMessage.ExpiredCode)
+        }
 
-    async checkOtp() {
+        const { userId } = this.tokenService.verifyOtpToken(token)
 
+        const otp = await this.otpRepository.findOneBy({ user_id: userId })
+        if (!otp) {
+            throw new NotFoundException(AuthMessage.LoginAgain)
+        }
+
+        const now = new Date()
+        if (otp.expires_in < now) {
+            throw new UnauthorizedException(AuthMessage.ExpiredCode)
+        }
+
+        if (otp.code !== code) {
+            throw new UnauthorizedException(AuthMessage.LoginAgain)
+        }
+
+        // create access token
+        const accessToken = this.tokenService.createAccessToken({ userId })
+
+        // prepare update fields
+        const verifyField =
+            otp.method === AuthMethod.Email ? { verify_email: true } : { verify_phone: true }
+
+        await this.userRepository.update({ id: userId }, verifyField)
+
+        return {
+            message: PublicMessage.LoggedIn,
+            accessToken,
+        }
     }
 
     async sendResponse(res: Response, result: AuthResponse) {
         const {token, code} = result
-        res.cookie(CookieKeys.OTP, token, {httpOnly: true});
+        res.cookie(CookieKeys.OTP, token, {
+            httpOnly: true,
+            expires: new Date(Date.now() + (2 * 60 * 1000)),
+        });
         res.json({
             message: PublicMessage.SentOtp,
             code
         })
+    }
+
+    async validateAccessToken(token: string) {
+        const {userId} = this.tokenService.verifyAccessToken(token);
+
+        const user = await this.userRepository.findOneBy({id: userId});
+        if (!user) throw new UnauthorizedException(AuthMessage.LoginAgain);
+
+        return user;
     }
 }

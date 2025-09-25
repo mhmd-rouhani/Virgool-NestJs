@@ -11,9 +11,15 @@ export class OtpEntity extends BaseEntity {
     @Column()
     expires_in: Date
 
+    @Column({nullable: true})
+    method: string;
 
     // Relation
-    @OneToOne(() => UserEntity, (user) => user.otp, {onDelete: "CASCADE"})
+    @OneToOne(
+        () => UserEntity,
+        (user) => user.otp,
+        {onDelete: "CASCADE"}
+    )
     @Column()
     user_id: number
 
