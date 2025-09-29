@@ -41,6 +41,7 @@ export enum PublicMessage {
 
 export enum ConflictMessage {
     CategoryTitle = "عنوان دسته بندی قبلا ثبت شده است",
+    BlogTitle = "عنوان بلاگ قبلا ثبت شده است",
     Email = "ایمیل توسط شخص دیگری استفاده شده",
     Phone = "شماره موبایل توسط شخص دیگری استفاده شده",
     Username = "نام کاربری توسط شخص دیگری استفاده شده",

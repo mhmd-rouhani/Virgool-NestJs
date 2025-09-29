@@ -1,8 +1,19 @@
-import {Entity} from "typeorm";
+import {Column, Entity, ManyToOne} from "typeorm";
 import {EntityNames} from "../../../common/enums/entity.enum";
 import {BaseEntity} from "../../../common/abstracts/BaseEntity";
+import {UserEntity} from "../../user/entities/user.entity";
+import {BlogEntity} from "./blog.entity";
 
-@Entity(EntityNames.Like)
-export class LikeEntity extends BaseEntity {
+@Entity(EntityNames.BlogLikes)
+export class BlogLikesEntity extends BaseEntity {
 
+    @Column()
+    user_id: number;
+    @ManyToOne(() => UserEntity, user => user.blog_likes, {onDelete: "CASCADE"})
+    user: UserEntity;
+
+    @Column()
+    blog_id: number;
+    @ManyToOne(() => BlogEntity, blog => blog.likes, {onDelete: "CASCADE"})
+    blog: BlogEntity;
 }
