@@ -5,6 +5,7 @@ export enum BadRequestMessage {
     MobileNumber = "فرمت شماره همراه شما صحیح نمی باشد",
     InvalidImageFormat = "فرمت تصاویر انتخاب شده صحیح نمی باشد",
     SomethingWrong = "خطایی پیش آمده دوباره تلاش کنید",
+    InvalidCategories = "دسته بندی ها رو به درستی وارد کنید"
 }
 
 export enum AuthMessage {

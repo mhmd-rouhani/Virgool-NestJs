@@ -1,4 +1,4 @@
-import {Column, CreateDateColumn, Entity, ManyToOne, OneToMany, UpdateDateColumn} from "typeorm";
+import {Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, UpdateDateColumn} from "typeorm";
 import {BaseEntity} from "../../../common/abstracts/BaseEntity";
 import {EntityNames} from "../../../common/enums/entity.enum";
 import {BlogStatus} from "../enums/status.enum";
@@ -7,6 +7,7 @@ import {UserEntity} from "../../user/entities/user.entity";
 import {BlogLikesEntity} from "./like.entity";
 import {BlogBookmarkEntity} from "./bookmark.entity";
 import {BlogCommentEntity} from "./comment.entity";
+import {BlogCategoryEntity} from "./blog-category.entity";
 
 @Entity(EntityNames.Blog)
 export class BlogEntity extends BaseEntity {
@@ -42,6 +43,7 @@ export class BlogEntity extends BaseEntity {
 
     // RELATIONS
     @ManyToOne(() => UserEntity, user => user.blogs, {onDelete: "CASCADE"})
+    @JoinColumn({name: 'author_id'})
     author: UserEntity;
 
     @OneToMany(() => BlogLikesEntity, like => like.blog)
@@ -52,4 +54,7 @@ export class BlogEntity extends BaseEntity {
 
     @OneToMany(() => BlogCommentEntity, blogComment => blogComment.blog)
     comments: BlogCommentEntity[];
+
+    @OneToMany(() => BlogCategoryEntity, category => category.blog)
+    categories: BlogCategoryEntity[];
 }
