@@ -21,18 +21,21 @@ export class BlogCommentEntity extends BaseEntity {
     @CreateDateColumn()
     created_at: Date;
 
-    @Column()
-    parent_id: number;
+    @Column({ nullable: true})
+    parent_id: number | null;
 
     @ManyToOne(() => UserEntity, user => user.blog_comments, {onDelete: "CASCADE"})
+    @JoinColumn({ name: "user_id" })
     user: UserEntity;
 
     @ManyToOne(() => BlogEntity, blog => blog.comments, {onDelete: "CASCADE"})
+    @JoinColumn({ name: "blog_id" })
     blog: BlogEntity;
 
     @ManyToOne(() => BlogCommentEntity, parent => parent.children, {onDelete: "CASCADE"})
+    @JoinColumn({ name: "parent_id" })
     parent: BlogCommentEntity
+
     @OneToMany(() => BlogCommentEntity, comment => comment.parent)
-    @JoinColumn({name: "parent"})
     children: BlogCommentEntity[];
 }

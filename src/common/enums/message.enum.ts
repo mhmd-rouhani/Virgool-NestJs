@@ -37,7 +37,12 @@ export enum PublicMessage {
     LoggedIn = "با موفقیت وارد حساب کاربری خود شدید",
     Created = "با موفقیت ایجاد شد",
     Deleted = "با موفقیت حذف شد",
-    Updated = "با موفقیت بروز شد"
+    Updated = "با موفقیت بروز شد",
+    Like = "مقاله با موفقیت لایک شد",
+    DisLike = "لایک شما از مقاله برداشته شد",
+    Bookmark = "مقاله با موفقیت بوکمارک شد",
+    DisBookmark = "بوکمارک شما از مقاله برداشته شد",
+    CreatedComment = "نظرشما با موفقیت ثبت شد"
 }
 
 export enum ConflictMessage {

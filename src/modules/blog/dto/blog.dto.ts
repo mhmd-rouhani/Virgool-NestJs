@@ -1,4 +1,4 @@
-import {ApiProperty, ApiPropertyOptional} from "@nestjs/swagger";
+import {ApiProperty, ApiPropertyOptional, PartialType} from "@nestjs/swagger";
 import {IsArray, IsNotEmpty, IsNumber, IsNumberString, IsOptional, Length} from "class-validator";
 
 export class CreateBlogDto {
@@ -36,4 +36,8 @@ export class CreateBlogDto {
 export class FilterBlogDto {
     category: string
     search: string
+}
+
+export class UpdateBlogDto extends PartialType(CreateBlogDto) {
+
 }
